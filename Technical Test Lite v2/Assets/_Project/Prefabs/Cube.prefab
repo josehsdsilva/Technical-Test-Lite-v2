@@ -13,10 +13,10 @@ GameObject:
   - component: {fileID: 4327232526377465798}
   - component: {fileID: 4327232526377465799}
   - component: {fileID: 4327232526377465796}
-  - component: {fileID: 4327232526377465797}
+  - component: {fileID: 2788922199929864510}
   m_Layer: 0
   m_Name: Cube
-  m_TagString: GoodCube
+  m_TagString: Cube
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -92,7 +92,7 @@ BoxCollider:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4327232526377465786}
   m_Material: {fileID: 0}
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
@@ -109,20 +109,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80c8a9d8d3ad66549ad5ddfe0bdcb25c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerController: {fileID: 0}
---- !u!54 &4327232526377465797
-Rigidbody:
+--- !u!65 &2788922199929864510
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4327232526377465786}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
   serializedVersion: 2
-  m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
-  m_UseGravity: 0
-  m_IsKinematic: 1
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
+  m_Size: {x: 1.1, y: 0.5, z: 1.1}
+  m_Center: {x: 0, y: 0, z: 0}
