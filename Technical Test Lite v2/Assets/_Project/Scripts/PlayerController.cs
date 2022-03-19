@@ -1,23 +1,38 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    private float speed = 20;
+    public MapSpawner mapSpawner;
+
+    private float speed = 6;
     private string floorTag = "Floor";
 
-    private MapSpawner mapSpawner;
-    public Vector3[] path;
+    public List<Vector3> path;
+    private int[] rotations;
     private int pathIndex = 0;
     private Vector3 target;
     private bool levelFinished = false;
 
     private void Start()
     {
-        mapSpawner = FindObjectOfType<MapSpawner>();
-        path = mapSpawner.Positions;
+        path = mapSpawner.Level.positions.ToList();
+        rotations = mapSpawner.Level.rotations;
+        SmoothPath();
         UpdateTarget();
+    }
+
+    private void SmoothPath()
+    {
+        for (int i = 1; i < rotations.Length; i++)
+        {
+            if(rotations[i] != rotations[i-1])
+            {
+                path[i-1] = path[i-1] + ((path[i]-path[i-1]) / 2);
+            }
+        }
     }
 
     public void UpdateY(float yDifference)
@@ -43,7 +58,7 @@ public class PlayerController : MonoBehaviour
 
     private void UpdateTarget()
     {
-        if(pathIndex >= path.Length)
+        if(pathIndex >= path.Count)
         {
             levelFinished = true;
             return;

@@ -1,117 +1,88 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using UnityEditor;
 using UnityEngine;
+using Unity.EditorCoroutines.Editor;
 
 public class MapSpawner : MonoBehaviour
 {
+    #region Serializable Fields
+
     [SerializeField]
     private List<GameObject> tiles;
     [SerializeField]
-    private GameObject player, cube, wall;
+    private GameObject cube, wall;
 
-    private List<GameObject> trackObjects;
+    #endregion Serializable Fields
 
-    private float tileSize = 15f;
-    private Vector3 nextPosition = Vector3.zero;
+    #region Fields
+
+    private List<GameObject> tilesList, objectsList;
+
+    // Helper variables
+    private static float cubetHeight = 0.25f;
+
+    // Map variables
+    private List<Map> maps;
+    private Map map;
+    public Map Level => map;
+    [HideInInspector]
+    public int currentLevel = 0;
+
     private int mapLength = 40;
-    private int[] track;
-    private int[] map;
-    private int[] objects;
-    private Vector3[] positions;
-    public Vector3[] Positions => positions;
-    private int[] rotations;
+
+    #endregion Fields
+
+    #region Unity Methods
 
     void Awake()
     {
-        trackObjects = new List<GameObject>();
-        CreateRandomTrack();
-        ReadMap(track);
-        SpawnTrack();
-        SpawnPlayer();
+        SpawnMap();
+    }
+
+    #endregion Unity Methods
+
+    #region Read Map and Instantiate
+    private void ReadMap(Map _map)
+    {
+        map = _map;
+        mapLength = _map.map.Length;
+    }
+
+    public void SpawnMap()
+    {
+        maps = Resources.LoadAll<Map>("Maps").ToList();
+
+        ReadMap(maps[currentLevel]);
+        DeleteMap();
+        SpawnTiles();
         SpawnObjects();
     }
 
-    void CreateRandomTrack()
+    public void DeleteMap()
     {
-        track = new int[mapLength];
-        objects = new int[mapLength];
-        track[0] = 0;
-        track[mapLength - 1] = 2;
-        for (int i = 1; i < mapLength - 1; i++)
+        for (int i = 0; i < transform.childCount; i++)
         {
-            track[i] = Random.Range(0, 2);
-            if(track[i] == 0)
-            {
-                objects[i] = Random.Range(0, 2);
-            }
+            EditorCoroutineUtility.StartCoroutine(Destroy(transform.GetChild(i).gameObject), this);
         }
+        tilesList?.Clear();
+        objectsList?.Clear();
     }
 
-    private void ReadMap(int[] _map)
+    IEnumerator Destroy(GameObject go)
     {
-        map = _map;
-        positions = new Vector3[mapLength];
-        rotations = new int[mapLength];
-
-        int rotation = 0;
-        Vector3 position = Vector3.zero;
-        for (int i = 0; i < mapLength; i++)
-        {
-            if(i == 0) continue;
-
-            if((TileType)map[i-1]  == TileType.Line)
-            {
-                if(rotations[i-1] == 0 || rotations[i-1] == 270)
-                {
-                    position = MoveForward(position);
-                }
-                else if(rotation == 180)
-                {
-                    position = MoveUp(position);
-                }
-                else
-                {
-                    position = MoveDown(position);
-                }
-                rotation = rotations[i-1];
-            }
-            else
-            {
-                switch(rotations[i-1])
-                {
-                    case 0:
-                        rotation = 180;
-                        position = MoveUp(position);
-                        break;
-
-                    case 180:
-                        rotation = 270;
-                        position = MoveForward(position);
-                        break;
-
-                    case 270:
-                        rotation = 90;
-                        position = MoveDown(position);
-                        break;
-
-                    case 90:
-                        rotation = 0;
-                        position = MoveForward(position);
-                        break;
-                }
-            }
-            
-            rotations[i] = rotation;
-            positions[i] = position;
-        }
+        yield return null;
+        DestroyImmediate(go);
     }
 
-    private void SpawnTrack()
+    private void SpawnTiles()
     {
+        tilesList = new List<GameObject>();
         for (int i = 0; i < mapLength; i++)
         {
-            InstantiateTile((TileType)map[i], positions[i], rotations[i]);
+            InstantiateTile((TileType)map.map[i], map.positions[i], map.rotations[i]);
         }
     }
 
@@ -120,51 +91,64 @@ public class MapSpawner : MonoBehaviour
         // Vertical or Horizontal rotation for the lines
         if(tile != TileType.Curve) rotation = rotation == 0 || rotation == 270 ? 0 : 90;
 
-        // Hidding a problem with the assets
+        // Hidding a problem with the Curve tile beeing a bit lower then the rest
         else pos += new Vector3(0, 0.04f, 0); 
 
         GameObject go = Instantiate(tiles[(int)tile], pos, Quaternion.Euler(0f, rotation, 0f), transform);
-        trackObjects.Add(go);
-    }
-    private void SpawnPlayer()
-    {
-        Instantiate(player, new Vector3(0, 1.5f, 0), Quaternion.identity);
+        tilesList.Add(go);
     }
 
     private void SpawnObjects()
     {
+        objectsList = new List<GameObject>();
+
         for (int i = 0; i < mapLength; i++)
         {
-            if(objects[i] > 0) InstantiateObjects(i);
+            if(map.objects[i] > 0) InstantiateObjects(i);
         }
     }
 
     private void InstantiateObjects(int i)
     {
-        float rotation = rotations[i] == 0 || rotations[i] == 270 ? 0 : 90;
-        Vector3 position = positions[i] + new Vector3(0, 0.25f, 0);
+        float rotation = map.rotations[i] == 0 || map.rotations[i] == 270 ? 0 : 90;
+        Vector3 position = map.positions[i] + new Vector3(0, cubetHeight, 0);
 
-        Instantiate(cube, position, Quaternion.Euler(0, rotation, 0));
+        GameObject go = Instantiate(cube, position, Quaternion.Euler(0, rotation, 0), transform);
+        objectsList.Add(go);
     }
 
-    private Vector3 MoveForward(Vector3 currentPos)
-    {
-        return new Vector3(currentPos.x, currentPos.y, currentPos.z + 15);
-    }
-    private Vector3 MoveDown(Vector3 currentPos)
-    {
-        return new Vector3(currentPos.x + 15, currentPos.y, currentPos.z);
-    }
-    private Vector3 MoveUp(Vector3 currentPos)
-    {
-        return new Vector3(currentPos.x - 15, currentPos.y, currentPos.z);
-    }
+    #endregion Read Map and Instantiate
+
+    #region Editor
+
+#if UNITY_EDITOR
+
+        [CustomEditor(typeof(MapSpawner)), CanEditMultipleObjects]
+        public class MapCreatorEditor : Editor
+        {
+            public override void OnInspectorGUI()
+            {
+                base.OnInspectorGUI();
+
+                MapSpawner mapSpawner = (MapSpawner)target;
+
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField("Buttons", EditorStyles.boldLabel);
+
+                if(GUILayout.Button("Spawn Map"))
+                {
+                    mapSpawner.SpawnMap();
+                    
+                }
+                if(GUILayout.Button("Delete Map"))
+                {
+                    mapSpawner.DeleteMap();
+                }
+            }
+        }
+
+#endif
+
+    #endregion
+
 }
-
-public enum TileType
-{
-    Line = 0,
-    Curve,
-    FinishLine
-}
-

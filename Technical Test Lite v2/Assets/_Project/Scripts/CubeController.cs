@@ -17,43 +17,24 @@ public class CubeController : MonoBehaviour
     private string cubeTag = "Cube";
     private string wallTag = "Wall";
     private Transform parentTransform;
-    private bool connected;
+    [SerializeField]
+    private bool connected = false;
 
     #endregion
 
-    private void Awake()
+    private void Start()
     {
         playerController = FindObjectOfType<PlayerController>();
-        // if(transform.parent != null) connected = true;
     }
 
-    void Connect(Transform parent)
-    {
-        if(transform.parent != null) return;
-
-        transform.parent = parent;
-        transform.position = new Vector3(parent.position.x, transform.position.y, parent.position.z);
-        
-    }
-    
-    async Task Disconnect()
-    {
-        if(transform.parent == null) return;
-
-        CubeController parenteCubeController = transform.parent.GetComponent<CubeController>();
-        if(parenteCubeController != null) parenteCubeController.connected = false;
-        transform.parent.DetachChildren();
-    }
-    
     private void OnTriggerEnter(Collider other)
     {
         if(other.CompareTag(cubeTag))
         {
             // Collided with cube
-            if(!connected && transform.parent != null && other.transform.parent == null )
+            if(connected && !other.GetComponent<CubeController>().connected)
             {
                 // Can connect
-                connected = true;
                 playerController.UpdateY(cubeHeight);
                 other.GetComponent<CubeController>().Connect(transform);
             }
@@ -65,4 +46,19 @@ public class CubeController : MonoBehaviour
         }
     }
 
+    void Connect(Transform parent)
+    {
+        connected = true;
+        transform.parent = parent;
+        transform.position = new Vector3(parent.position.x, transform.position.y, parent.position.z);
+    }
+    
+    void Disconnect()
+    {
+        if(transform.parent == null) return;
+
+        CubeController parenteCubeController = transform.parent.GetComponent<CubeController>();
+        transform.parent = playerController.mapSpawner.transform;
+    }
+    
 }
