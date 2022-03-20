@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
-using Unity.EditorCoroutines.Editor;
 
+#if UNITY_EDITOR
+using Unity.EditorCoroutines.Editor;
+#endif
 public class MapSpawner : MonoBehaviour
 {
     #region Serializable Fields
@@ -44,13 +46,7 @@ public class MapSpawner : MonoBehaviour
 
     #endregion Unity Methods
 
-    #region Read Map and Instantiate
-    private void ReadMap(Map _map)
-    {
-        map = _map;
-        mapLength = _map.map.Length;
-    }
-
+    #region Read Map and instantiate it
     public void SpawnMap()
     {
         maps = Resources.LoadAll<Map>("Maps").ToList();
@@ -62,20 +58,33 @@ public class MapSpawner : MonoBehaviour
         SpawnObjects();
     }
 
+    private void ReadMap(Map _map)
+    {
+        map = _map;
+        mapLength = _map.map.Length;
+    }
+
     public void DeleteMap()
     {
         for (int i = 0; i < transform.childCount; i++)
         {
-            EditorCoroutineUtility.StartCoroutine(Destroy(transform.GetChild(i).gameObject), this);
+            #if UNITY_EDITOR
+                EditorCoroutineUtility.StartCoroutine(Destroy(transform.GetChild(i).gameObject), this);
+            #else
+                Destroy(transform.GetChild(i).gameObject);
+            #endif
         }
         tilesList?.Clear();
         objectsList?.Clear();
     }
 
-    IEnumerator Destroy(GameObject go)
+    private void SpawnTiles()
     {
-        yield return null;
-        DestroyImmediate(go);
+        tilesList = new List<GameObject>();
+        for (int i = 0; i < mapLength; i++)
+        {
+            InstantiateTile((TileType)map.map[i], map.positions[i], map.rotations[i]);
+        }
     }
 
     private void SpawnPath()
@@ -86,15 +95,23 @@ public class MapSpawner : MonoBehaviour
             InstantiateCube(map.path[i], 0);
         }
     }
-    private void SpawnTiles()
+
+    private void SpawnObjects()
     {
-        tilesList = new List<GameObject>();
+        objectsList = new List<GameObject>();
+
         for (int i = 0; i < mapLength; i++)
         {
-            InstantiateTile((TileType)map.map[i], map.positions[i], map.rotations[i]);
+            if(map.objects[i] > 0) InstantiateObjects(i);
         }
     }
 
+    IEnumerator Destroy(GameObject go)
+    {
+        yield return null;
+        DestroyImmediate(go);
+    }
+    
     private void InstantiateTile(TileType tile, Vector3 pos, int rotation)
     {
         // Vertical or Horizontal rotation for the lines
@@ -105,16 +122,6 @@ public class MapSpawner : MonoBehaviour
 
         GameObject go = Instantiate(tiles[(int)tile], pos, Quaternion.Euler(0f, rotation, 0f), transform);
         tilesList.Add(go);
-    }
-
-    private void SpawnObjects()
-    {
-        objectsList = new List<GameObject>();
-
-        for (int i = 0; i < mapLength; i++)
-        {
-            if(map.objects[i] > 0) InstantiateObjects(i);
-        }
     }
 
     private void InstantiateObjects(int i)
@@ -185,7 +192,7 @@ public class MapSpawner : MonoBehaviour
         return rotation == 0  ? position + forward + (upOrDown / 3) * side : position + upOrDown + (forward / 3) * side;
     }
 
-    #endregion Read Map and Instantiate
+    #endregion Read Map and instantiate it
 
     #region Editor
 

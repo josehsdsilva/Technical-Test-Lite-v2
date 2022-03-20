@@ -35,13 +35,14 @@ public class CubeController : MonoBehaviour
             if(connected && !other.GetComponent<CubeController>().connected)
             {
                 // Can connect
-                playerController.UpdateY(cubeHeight);
+                playerController.CubeConnected(cubeHeight);
                 other.GetComponent<CubeController>().Connect(transform);
             }
         }
         else if(other.CompareTag(wallTag))
         {
             // Collided with wall
+            playerController.CubeDisconnected();
             Disconnect();
         }
     }
