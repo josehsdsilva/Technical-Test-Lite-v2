@@ -16,8 +16,13 @@ public class CameraFollow : MonoBehaviour
 
     void FixedUpdate()
     {
-        Vector3 desiredPosition = target.position + offset;
-        Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed);
-        transform.position = smoothedPosition;
+        Vector3 desiredPosition = target.position + target.forward * -8 + offset;
+        transform.position = desiredPosition;
+        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(GetTargetPos() - transform.position), Time.deltaTime * 3);
+    }
+
+    Vector3 GetTargetPos()
+    {
+        return new Vector3(target.position.x, 3f, target.position.z);
     }
 }

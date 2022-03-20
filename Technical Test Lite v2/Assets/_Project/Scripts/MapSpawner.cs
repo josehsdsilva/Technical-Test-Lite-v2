@@ -19,7 +19,7 @@ public class MapSpawner : MonoBehaviour
 
     #region Fields
 
-    private List<GameObject> tilesList, objectsList;
+    private List<GameObject> pathList, tilesList, objectsList;
 
     // Helper variables
     private static float cubetHeight = 0.25f;
@@ -58,6 +58,7 @@ public class MapSpawner : MonoBehaviour
         ReadMap(maps[currentLevel]);
         DeleteMap();
         SpawnTiles();
+        // SpawnPath();
         SpawnObjects();
     }
 
@@ -77,6 +78,14 @@ public class MapSpawner : MonoBehaviour
         DestroyImmediate(go);
     }
 
+    private void SpawnPath()
+    {
+        objectsList = new List<GameObject>();
+        for (int i = 0; i < map.path.Length; i++)
+        {
+            InstantiateCube(map.path[i], 0);
+        }
+    }
     private void SpawnTiles()
     {
         tilesList = new List<GameObject>();
@@ -110,11 +119,70 @@ public class MapSpawner : MonoBehaviour
 
     private void InstantiateObjects(int i)
     {
-        float rotation = map.rotations[i] == 0 || map.rotations[i] == 270 ? 0 : 90;
         Vector3 position = map.positions[i] + new Vector3(0, cubetHeight, 0);
+        int rotation = map.rotations[i] == 0 || map.rotations[i] == 270 ? 0 : 90;
+        int forwardOrBack = Random.Range(0, 2) * 2 - 1;
 
+        if(map.objects[i] == 1)
+        {
+            InstantiateCube(position, rotation);
+        }
+        else if(map.objects[i] == 2)
+        {
+            InstantiateCube(position, rotation);
+            InstantiateSingleCubeWall(position, rotation, forwardOrBack);
+        }
+        else if(map.objects[i] == 3)
+        {
+            InstantiateCube(position, rotation);
+            InstantiateWall(position, rotation, forwardOrBack);
+        }
+        else if(map.objects[i] == 4)
+        {
+            InstantiateSingleCubeWall(position, rotation, forwardOrBack);
+        }
+        else if(map.objects[i] == 5)
+        {
+            InstantiateWall(position, rotation, forwardOrBack);
+        }
+    }
+
+    private void InstantiateCube(Vector3 position, int rotation)
+    {
         GameObject go = Instantiate(cube, position, Quaternion.Euler(0, rotation, 0), transform);
         objectsList.Add(go);
+    }
+    private void InstantiateSingleCubeWall(Vector3 position, int rotation, int forwardOrBack)
+    {
+        
+        GameObject go = Instantiate(wall, GetRelativePosition(position, rotation, forwardOrBack), Quaternion.Euler(0, rotation, 0), transform);
+        objectsList.Add(go);
+    }
+    private void InstantiateWall(Vector3 position, int rotation, int forwardOrBack)
+    {
+        GameObject go;
+        for (int i = -4; i < 5; i++)
+        {
+            go = Instantiate(wall, GetRelativeSidePosition(position, rotation, i, forwardOrBack), Quaternion.Euler(0, rotation, 0), transform);
+            objectsList.Add(go);
+        }
+    }
+
+    private Vector3 GetRelativePosition(Vector3 position, int rotation, int forwardOrBack)
+    {
+        Vector3 forward = new Vector3(0, 0, 2);
+        Vector3 upOrDown = new Vector3(2, 0, 0);
+        forward *= forwardOrBack;
+
+        return rotation == 0 ? position + forward : position + upOrDown;
+    }
+    private Vector3 GetRelativeSidePosition(Vector3 position, int rotation, int side, int forwardOrBack)
+    {
+        Vector3 forward = new Vector3(0, 0, 2);
+        Vector3 upOrDown = new Vector3(2, 0, 0);
+        forward *= forwardOrBack;
+
+        return rotation == 0  ? position + forward + (upOrDown / 3) * side : position + upOrDown + (forward / 3) * side;
     }
 
     #endregion Read Map and Instantiate

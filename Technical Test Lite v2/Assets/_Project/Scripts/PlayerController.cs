@@ -7,6 +7,7 @@ public class PlayerController : MonoBehaviour
 {
     public MapSpawner mapSpawner;
 
+    private float rotationSpeed = 4;
     private float speed = 6;
     private string floorTag = "Floor";
 
@@ -18,21 +19,8 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
-        path = mapSpawner.Level.positions.ToList();
-        rotations = mapSpawner.Level.rotations;
-        SmoothPath();
+        path = mapSpawner.Level.path.ToList();
         UpdateTarget();
-    }
-
-    private void SmoothPath()
-    {
-        for (int i = 1; i < rotations.Length; i++)
-        {
-            if(rotations[i] != rotations[i-1])
-            {
-                path[i-1] = path[i-1] + ((path[i]-path[i-1]) / 2);
-            }
-        }
     }
 
     public void UpdateY(float yDifference)
@@ -43,12 +31,9 @@ public class PlayerController : MonoBehaviour
     void FixedUpdate() 
     {
         if(levelFinished) return;
-        // float horizontalInput = Input.GetAxis("Horizontal");
 
-        // Vector3 movement = new Vector3(horizontalInput, 0, 1);
-        // movement.Normalize();
-        Vector3 movement = GetTargetPos() - transform.position;
-        transform.Translate(movement.normalized * speed * Time.deltaTime);
+        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(GetTargetPos() - transform.position), Time.deltaTime * rotationSpeed);
+        transform.Translate(Vector3.forward * speed * Time.deltaTime);
 
         if(Vector3.Distance(transform.position, GetTargetPos()) <= 0.2f)
         {

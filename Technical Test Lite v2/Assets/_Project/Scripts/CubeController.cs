@@ -51,6 +51,7 @@ public class CubeController : MonoBehaviour
         connected = true;
         transform.parent = parent;
         transform.position = new Vector3(parent.position.x, transform.position.y, parent.position.z);
+        transform.rotation = parent.rotation;
     }
     
     void Disconnect()

@@ -25,28 +25,69 @@ public class MapCreator : MonoBehaviour, ISerializationCallbackReceiver
         maps = Resources.LoadAll<Map>("Maps").ToList();
     }
 
-    private void CreateRandomMap(bool isNew)
+    private async void CreateRandomMap(bool isNew)
     {
-        if(!isNew && maps.Count == 0) isNew = true;
+        if(!isNew && maps.Count == 0)
+        {
+            // if there's no maps create a new one
+            isNew = true;
+        }
+        else if(!isNew && level == null)
+        {
+            // if level is not asigned get the current level data
+            if(mapSpawner == null) mapSpawner = FindObjectOfType<MapSpawner>();
+            level = maps[mapSpawner.currentLevel];
+        }
 
         tiles = new int[newMapTilesCount];
         objects = new int[newMapTilesCount];
 
+        bool first = true;
+
+        // Create basic level data
         tiles[0] = 0;
         for (int i = 1; i < newMapTilesCount - 1; i++)
         {
             tiles[i] = Random.Range(0, 2);
             if(tiles[i] == 0)
             {
-                objects[i] = Random.Range(0, 2);
+                if(first)
+                {
+                    objects[i] = 1;
+                    first = false;
+                    continue;
+                }
+                int random = Random.Range(0, 100);
+                if(random > 50)
+                {
+                    objects[i] = 1;
+                }
+                else if(random > 40)
+                {
+                    objects[i] = 2;
+                }
+                else if(random > 20)
+                {
+                    objects[i] = 3;
+                }
+                else if(random > 10)
+                {
+                    objects[i] = 4;
+                }
+                else
+                {
+                    objects[i] = 5;
+                }
+                
             }
         }
         tiles[newMapTilesCount - 1] = 2;
 
-        GenerateDataFromMap(isNew);
+        ExpandMapData(isNew);
     }
 
-    private void GenerateDataFromMap(bool isNew)
+    // Expand the map data
+    private void ExpandMapData(bool isNew)
     {
         positions = new Vector3[newMapTilesCount];
         rotations = new int[newMapTilesCount];
@@ -104,39 +145,92 @@ public class MapCreator : MonoBehaviour, ISerializationCallbackReceiver
         CreateOrUpdateScriptableObject(isNew);
     }
 
+    // Create (or Update) the map data (on the) scriptable object
     void CreateOrUpdateScriptableObject(bool isNew)
     {
         if(isNew)
         {
             Map newMap = ScriptableObject.CreateInstance<Map>();
-            newMap.UpdateData(tiles, positions, rotations, objects);
             string assetPath = $"Assets/Resources/Maps/Map {maps.Count}.asset";
             AssetDatabase.CreateAsset(newMap, assetPath);
             level = newMap;
         }
-        else
-        {
-            level.UpdateData(tiles, positions, rotations, objects);
-        }
+        level.UpdateData(tiles, positions, CalculatePath(), rotations, objects);
         LoadAllMaps();
         Level = $"Map {maps.IndexOf(level)}";
-        SpawnMap();
+        ShowLevelOnEditor();
     }
 
-    private void SpawnMap()
+    private Vector3[] CalculatePath()
+    {
+        List<Vector3> path = positions.ToList();
+        int counter = 0;
+        int listCount = 0;
+        for (int i = 1; i < rotations.Length; i++)
+        {
+            if(rotations[i] != rotations[i-1])
+            {
+                path[i-1] = path[i-1] + ((path[i]-path[i-1]) / 2);
+            }
+        }
+        for (int i = 0; i < rotations.Length; i++)
+        {
+            if((TileType)tiles[i] == TileType.Line)
+            {
+                Vector3 oldPos = path[i + counter];
+                if(rotations[i] == 0 || rotations[i] == 270)
+                {
+                    path.Insert(i + 1 + counter, oldPos - (oldPos - MoveForward(oldPos))/2);
+                }
+                else if(rotations[i] == 180)
+                {
+                    path.Insert(i + 1 + counter, oldPos - (oldPos - MoveUp(oldPos))/2);
+                }
+                else
+                {
+                    path.Insert(i + 1 + counter, oldPos - (oldPos - MoveDown(oldPos))/2);
+                }
+                counter++;
+            }
+        }
+        counter = 0;
+        listCount = path.Count - 1;
+        for (int i = 0; i < listCount; i++)
+        {
+            path.Insert(i + 1 + counter, path[i + counter] + path[i + 1 + counter] - path[i + counter]);
+            counter++;
+        }
+        // counter = 0;
+        // listCount = path.Count - 1;
+        // for (int i = 0; i < listCount; i++)
+        // {
+        //     path.Insert(i + 1 + counter, path[i + counter] + path[i + 1 + counter] - path[i + counter]);
+        //     counter++;
+        // }
+        return path.ToArray();
+    }
+
+    private void ShowLevelOnEditor()
     {
         if(mapSpawner == null) mapSpawner = FindObjectOfType<MapSpawner>();
+
         LoadAllMaps();
-        UpdateCurrentLevel();
+
+        if(maps != null && maps.Count > 0)
+        {
+            int levelIndex = maps.IndexOf(level);
+            mapSpawner.currentLevel = levelIndex;
+            
+            mapSpawner.SpawnMap();
+        }
     }
 
-    private void DeleteMap()
+    private void DeleteMapData()
     {
         int levelIndex = maps.IndexOf(level);
         string assetPath = $"Assets/Resources/Maps/Map {levelIndex}.asset";
         AssetDatabase.DeleteAsset(assetPath);
         AssetDatabase.SaveAssets();
-
         
         for (int i = levelIndex + 1; i < maps.Count; i++)
         {
@@ -159,17 +253,6 @@ public class MapCreator : MonoBehaviour, ISerializationCallbackReceiver
         {
             Level = null;
             mapSpawner.DeleteMap();
-        }
-    }
-
-    private void UpdateCurrentLevel()
-    {
-        if(maps != null && maps.Count > 0)
-        {
-            int levelIndex = maps.IndexOf(level);
-            mapSpawner.currentLevel = levelIndex;
-            
-            mapSpawner.SpawnMap();
         }
     }
     
@@ -213,12 +296,11 @@ public class MapCreator : MonoBehaviour, ISerializationCallbackReceiver
         {
             if(maps != null && maps.Count > 0)
             {
-                
                 Map newLevel = maps[int.Parse(Regex.Match(Level, @"\d+").Value)];
                 if(level != newLevel)
                 {
                     level = newLevel;
-                    SpawnMap();
+                    ShowLevelOnEditor();
                     thisMapTilesCount = level.map.Length;
                 }
             }
@@ -237,7 +319,6 @@ public class MapCreator : MonoBehaviour, ISerializationCallbackReceiver
                 MapCreator mapCreator = (MapCreator)target;
 
                 EditorGUILayout.Space();
-                // EditorGUILayout.LabelField("Buttons", EditorStyles.boldLabel);
 
                 if(GUILayout.Button("Create New Map"))
                 {
@@ -248,7 +329,7 @@ public class MapCreator : MonoBehaviour, ISerializationCallbackReceiver
 
                 if(GUILayout.Button("Delete This Map"))
                 {
-                    mapCreator.DeleteMap();
+                    mapCreator.DeleteMapData();
                 }
 
                 EditorGUILayout.Space();
