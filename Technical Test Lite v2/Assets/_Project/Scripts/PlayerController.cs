@@ -29,7 +29,6 @@ public class PlayerController : MonoBehaviour
     private string floorTag = "Floor";
 
     private int pathIndex = 0;
-    private bool levelFinished = false;
 
     #endregion
 
@@ -63,7 +62,6 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate() 
     {
-        if(levelFinished) return;
 
         if(input != 0 && Vector3.Distance(transform.position, GetTargetPos()) >= 1.5)
         {
@@ -79,13 +77,18 @@ public class PlayerController : MonoBehaviour
             pathIndex++;
             if(pathIndex >= path.Count)
             {
-                levelFinished = true;
                 PlayerPrefs.SetInt("level" + (mapSpawner.currentLevel), 1);
                 SceneManager.LoadScene("LevelSelection");
                 return;
             }
         }
         target = path[pathIndex] + sideOffset;
+
+        if(transform.position.y < 0)
+        {
+            SceneManager.LoadScene("LevelSelection");
+            return;
+        }
     }
 
     Vector3 GetTargetPos()
