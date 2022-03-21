@@ -150,18 +150,27 @@ public class MapCreator : MonoBehaviour
 
     // Create (or Update) the map data (on the) scriptable object
     void CreateOrUpdateScriptableObject(bool isNew)
-    {
-        if(mapSpawner)
-        if(isNew)
+    {   
+        int levelIndex = 0;
+        string assetPath = "";
+        if(!isNew)
         {
-            Map newMap = ScriptableObject.CreateInstance<Map>();
-            string assetPath = $"Assets/Resources/Maps/Map {maps.Count}.asset";
-            newMap.UpdateData(tiles, positions, CalculatePath(), rotations, objects);
-            AssetDatabase.CreateAsset(newMap, assetPath);
-            level = newMap;
-            Level = $"Map {maps.Count}";
+            levelIndex = GetLevelNumber(Level);
+            assetPath = $"Assets/Resources/Maps/Map {levelIndex}.asset";
+            AssetDatabase.DeleteAsset(assetPath);
         }
-        else maps[mapSpawner.currentLevel].UpdateData(tiles, positions, CalculatePath(), rotations, objects);
+        else
+        {
+            levelIndex = maps.Count;
+            assetPath = $"Assets/Resources/Maps/Map {levelIndex}.asset";
+        }
+
+        Map newMap = ScriptableObject.CreateInstance<Map>();
+        newMap.UpdateData(tiles, positions, CalculatePath(), rotations, objects);
+        AssetDatabase.CreateAsset(newMap, assetPath);
+        level = newMap;
+        Level = $"Map {levelIndex}";
+
         LoadAllMaps();
         thisMapTilesCount = maps[GetLevelNumber(Level)].map.Length;
         ShowLevelOnEditor();

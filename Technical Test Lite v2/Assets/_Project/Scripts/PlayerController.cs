@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
@@ -79,6 +80,8 @@ public class PlayerController : MonoBehaviour
             if(pathIndex >= path.Count)
             {
                 levelFinished = true;
+                PlayerPrefs.SetInt("level" + (mapSpawner.currentLevel), 1);
+                SceneManager.LoadScene("LevelSelection");
                 return;
             }
         }

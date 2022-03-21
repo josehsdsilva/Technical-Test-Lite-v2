@@ -41,6 +41,7 @@ public class MapSpawner : MonoBehaviour
 
     void Awake()
     {
+        currentLevel = PlayerPrefs.GetInt("currentLevel");
         SpawnMap();
     }
 
